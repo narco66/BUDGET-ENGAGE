@@ -1,0 +1,36 @@
+<?php
+
+return [
+    'execution' => [
+        'title' => 'Rapport d’exécution budgétaire',
+        'subtitle' => 'Engagements en phase d’exécution (approuvés et suivants).',
+        'filter_exercice' => 'Exercice budgétaire',
+        'all_exercices' => 'Tous les exercices',
+        'kpi_engagements' => 'Engagements (nombre)',
+        'kpi_montant_engagements' => 'Montant total des engagements',
+        'kpi_liquide' => 'Montant liquidé (cumul)',
+        'kpi_ordonnance' => 'Montant ordonnancé (cumul)',
+        'kpi_paye' => 'Montant payé (cumul)',
+        'table_numero' => 'Numéro',
+        'table_statut' => 'Statut',
+        'table_exercice' => 'Exercice',
+        'table_ligne' => 'Ligne',
+        'table_montant' => 'Montant eng.',
+        'table_liquide' => 'Liquidé',
+        'table_ord' => 'Ordonnancé',
+        'table_paye' => 'Payé',
+        'table_createur' => 'Initiateur',
+        'empty' => 'Aucun engagement ne correspond aux filtres.',
+        'limited_scope' => 'Vue limitée à vos propres engagements.',
+    ],
+    'activity' => [
+        'title' => 'Journal des opérations budgétaires',
+        'subtitle' => 'Historique des actions enregistrées (validation, exécution, annulations).',
+        'when' => 'Date',
+        'user' => 'Utilisateur',
+        'description' => 'Description',
+        'subject' => 'Objet',
+        'properties' => 'Données',
+        'empty' => 'Aucune entrée.',
+    ],
+];
