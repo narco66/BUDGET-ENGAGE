@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['agent_id', 'exercice_budgetaire_id', 'mois']);
+            $table->unique(['agent_id', 'exercice_budgetaire_id', 'mois'], 'scp_agent_exercice_mois_uq');
         });
     }
 

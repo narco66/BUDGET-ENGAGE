@@ -6,6 +6,7 @@ use App\Enums\StatutEngagement;
 use App\Models\Engagement;
 use App\Models\User;
 use App\Services\EngagementWorkflowService;
+use App\Support\EngagementPermissions;
 
 class EngagementPolicy
 {
@@ -38,10 +39,7 @@ class EngagementPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->can('engagements.create')
-            || $user->can('engagements.submit')
-            || $user->can('reports.view_limited')
-            || self::seesAllEngagements($user);
+        return EngagementPermissions::canViewAny($user);
     }
 
     public function view(User $user, Engagement $engagement): bool
@@ -59,7 +57,7 @@ class EngagementPolicy
 
     public function create(User $user): bool
     {
-        return $user->can('engagements.create');
+        return EngagementPermissions::canCreate($user);
     }
 
     public function update(User $user, Engagement $engagement): bool
@@ -68,7 +66,7 @@ class EngagementPolicy
             return false;
         }
 
-        if ($engagement->created_by === $user->id && $user->can('engagements.create')) {
+        if ($engagement->created_by === $user->id && EngagementPermissions::canUpdate($user)) {
             return true;
         }
 
@@ -81,7 +79,7 @@ class EngagementPolicy
             return false;
         }
 
-        if ($engagement->created_by === $user->id && $user->can('engagements.create')) {
+        if ($engagement->created_by === $user->id && EngagementPermissions::canCreate($user)) {
             return true;
         }
 
@@ -90,7 +88,7 @@ class EngagementPolicy
 
     public function submit(User $user, Engagement $engagement): bool
     {
-        if (! $user->can('engagements.submit')) {
+        if (! EngagementPermissions::canSubmit($user)) {
             return false;
         }
 
@@ -107,7 +105,7 @@ class EngagementPolicy
 
     public function decideWorkflow(User $user, Engagement $engagement): bool
     {
-        if ($engagement->statut !== StatutEngagement::EnValidation) {
+        if (! $engagement->statut->estEnCircuitValidation()) {
             return false;
         }
 
@@ -128,7 +126,7 @@ class EngagementPolicy
 
     public function cancelApproved(User $user, Engagement $engagement): bool
     {
-        if (! $user->can('exercises.manage')) {
+        if (! EngagementPermissions::canCancelApproved($user)) {
             return false;
         }
 
@@ -137,6 +135,15 @@ class EngagementPolicy
         }
 
         return ! $engagement->liquidations()->exists();
+    }
+
+    public function cloturer(User $user, Engagement $engagement): bool
+    {
+        if (! $user->can('exercises.manage') && ! $user->can('engagement.admin')) {
+            return false;
+        }
+
+        return $engagement->statut === StatutEngagement::Paye;
     }
 
     /**

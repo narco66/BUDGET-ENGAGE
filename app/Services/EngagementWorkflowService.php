@@ -4,8 +4,11 @@ namespace App\Services;
 
 use App\Enums\DecisionWorkflow;
 use App\Enums\StatutEngagement;
+use App\Events\EngagementApproved;
+use App\Events\EngagementStatusChanged;
 use App\Models\Engagement;
 use App\Models\LigneBudgetaire;
+use App\Models\ParametreControle;
 use App\Models\User;
 use App\Models\ValidationWorkflow;
 use App\Support\BudgetJournal;
@@ -26,11 +29,12 @@ class EngagementWorkflowService
 
         DB::transaction(function () use ($engagement, $user): void {
             Engagement::query()->whereKey($engagement->id)->lockForUpdate()->firstOrFail();
+            $fromStatus = $engagement->statut;
 
             $engagement->validationsWorkflow()->delete();
 
             $engagement->update([
-                'statut' => StatutEngagement::EnValidation,
+                'statut' => StatutEngagement::Soumis,
                 'submitted_at' => now(),
             ]);
 
@@ -45,6 +49,15 @@ class EngagementWorkflowService
                 BudgetJournal::record($user, __('journal.workflow.submitted', ['numero' => $numero]), Engagement::find($engagementId), [
                     'engagement_id' => $engagementId,
                 ]);
+            });
+
+            DB::afterCommit(function () use ($engagementId, $fromStatus, $user): void {
+                event(new EngagementStatusChanged(
+                    $engagementId,
+                    $fromStatus->value,
+                    StatutEngagement::Soumis->value,
+                    $user->id
+                ));
             });
         });
     }
@@ -74,6 +87,11 @@ class EngagementWorkflowService
 
     public function userCanValidateStep(User $user, ValidationWorkflow $step): bool
     {
+        $engagement = $step->engagement()->first();
+        if ($engagement !== null && $engagement->created_by === $user->id && ! $user->can('exercises.manage')) {
+            return false;
+        }
+
         if ($user->can('exercises.manage')) {
             return true;
         }
@@ -98,10 +116,15 @@ class EngagementWorkflowService
 
             $engagement->refresh();
 
-            if ($engagement->statut !== StatutEngagement::EnValidation) {
+            if (! $engagement->statut->estEnCircuitValidation()) {
                 throw ValidationException::withMessages([
                     'workflow' => __('Cet engagement n’est pas en circuit de validation.'),
                 ]);
+            }
+
+            if ($engagement->statut === StatutEngagement::Soumis) {
+                $engagement->update(['statut' => StatutEngagement::EnValidation]);
+                $engagement->refresh();
             }
 
             $step = ValidationWorkflow::query()
@@ -197,6 +220,8 @@ class EngagementWorkflowService
 
     protected function afterReject(Engagement $engagement, ?string $commentaire): void
     {
+        $fromStatus = $engagement->statut;
+
         ValidationWorkflow::query()
             ->where('engagement_id', $engagement->id)
             ->where('decision', DecisionWorkflow::EnAttente)
@@ -207,10 +232,20 @@ class EngagementWorkflowService
             'rejected_at' => now(),
             'motif_rejet' => $commentaire,
         ]);
+
+        DB::afterCommit(function () use ($engagement, $fromStatus): void {
+            event(new EngagementStatusChanged(
+                $engagement->id,
+                $fromStatus->value,
+                StatutEngagement::Rejete->value
+            ));
+        });
     }
 
     protected function afterReturn(Engagement $engagement): void
     {
+        $fromStatus = $engagement->statut;
+
         ValidationWorkflow::query()
             ->where('engagement_id', $engagement->id)
             ->where('decision', DecisionWorkflow::EnAttente)
@@ -219,30 +254,58 @@ class EngagementWorkflowService
         $engagement->update([
             'statut' => StatutEngagement::Retourne,
         ]);
+
+        DB::afterCommit(function () use ($engagement, $fromStatus): void {
+            event(new EngagementStatusChanged(
+                $engagement->id,
+                $fromStatus->value,
+                StatutEngagement::Retourne->value
+            ));
+        });
     }
 
     protected function finalizeApproval(Engagement $engagement, User $user): void
     {
-        $ligne = LigneBudgetaire::query()
-            ->whereKey($engagement->ligne_budgetaire_id)
-            ->lockForUpdate()
-            ->firstOrFail();
-
-        $disponible = $ligne->creditDisponible();
-
-        if (bccomp((string) $engagement->montant, $disponible, 2) > 0) {
-            throw ValidationException::withMessages([
-                'workflow' => __('Le crédit disponible sur la ligne est insuffisant pour approuver cet engagement (disponible : :d).', [
-                    'd' => $disponible,
-                ]),
-            ]);
+        $lastValidatedStep = ValidationWorkflow::query()
+            ->where('engagement_id', $engagement->id)
+            ->where('decision', DecisionWorkflow::Valide)
+            ->orderByDesc('ordre')
+            ->first();
+        $isDelegatedApproval = $lastValidatedStep?->etape === 'visa_ordonnateur' && $user->can('workflow.ordonnateur_delegue');
+        if ($isDelegatedApproval) {
+            $this->assertDelegatedThresholdRespected($engagement);
         }
 
-        $nouveauMontantEngage = bcadd((string) $ligne->montant_engage, (string) $engagement->montant, 2);
+        $imputations = $engagement->imputations()->get();
+        if ($imputations->isEmpty()) {
+            $imputations = collect([(object) [
+                'ligne_budgetaire_id' => $engagement->ligne_budgetaire_id,
+                'montant_impute' => $engagement->montant,
+            ]]);
+        }
 
-        $ligne->update([
-            'montant_engage' => $nouveauMontantEngage,
-        ]);
+        foreach ($imputations as $imputation) {
+            $ligne = LigneBudgetaire::query()
+                ->whereKey($imputation->ligne_budgetaire_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $disponible = $ligne->creditDisponible();
+            $montantImpute = (string) $imputation->montant_impute;
+
+            if (bccomp($montantImpute, $disponible, 2) > 0) {
+                throw ValidationException::withMessages([
+                    'workflow' => __('Le crédit disponible sur la ligne #:ligne est insuffisant (disponible : :d).', [
+                        'ligne' => $ligne->id,
+                        'd' => $disponible,
+                    ]),
+                ]);
+            }
+
+            $ligne->update([
+                'montant_engage' => bcadd((string) $ligne->montant_engage, $montantImpute, 2),
+            ]);
+        }
 
         $engagement->update([
             'statut' => StatutEngagement::Approuve,
@@ -252,18 +315,79 @@ class EngagementWorkflowService
         $engagementId = $engagement->id;
         $numero = $engagement->numero;
         $montantStr = (string) $engagement->montant;
-        $ligneId = $ligne->id;
+        $imputationsPayload = $imputations->map(fn ($row) => [
+            'ligne_budgetaire_id' => (int) $row->ligne_budgetaire_id,
+            'montant_impute' => (string) $row->montant_impute,
+        ])->values()->all();
 
-        DB::afterCommit(function () use ($user, $engagementId, $numero, $montantStr, $ligneId): void {
+        DB::afterCommit(function () use ($user, $engagementId, $numero, $montantStr, $imputationsPayload): void {
             BudgetJournal::record($user, __('journal.workflow.approved', [
                 'numero' => $numero,
                 'montant' => $montantStr,
-                'ligne' => $ligneId,
+                'ligne' => $imputationsPayload[0]['ligne_budgetaire_id'] ?? '-',
             ]), Engagement::find($engagementId), [
                 'engagement_id' => $engagementId,
-                'ligne_budgetaire_id' => $ligneId,
                 'montant' => $montantStr,
+                'imputations' => $imputationsPayload,
             ]);
+
+            event(new EngagementApproved($engagementId));
+            event(new EngagementStatusChanged(
+                $engagementId,
+                StatutEngagement::EnValidation->value,
+                StatutEngagement::Approuve->value,
+                $user->id
+            ));
+        });
+    }
+
+    protected function assertDelegatedThresholdRespected(Engagement $engagement): void
+    {
+        $threshold = (float) (ParametreControle::query()
+            ->where('cle', 'seuil_ordonnateur_delegue')
+            ->where('actif', true)
+            ->value('valeur') ?? 0);
+
+        if ((float) $engagement->montant > $threshold) {
+            throw ValidationException::withMessages([
+                'workflow' => __('Validation déléguée impossible : le montant dépasse le seuil autorisé (:seuil).', [
+                    'seuil' => number_format($threshold, 2, ',', ' '),
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * Clôture administrative d'un engagement intégralement payé.
+     */
+    public function cloturer(Engagement $engagement, User $user): void
+    {
+        if (! $engagement->statut->estCloturable()) {
+            throw ValidationException::withMessages([
+                'workflow' => __('Seul un engagement intégralement payé peut être clôturé.'),
+            ]);
+        }
+
+        DB::transaction(function () use ($engagement, $user): void {
+            $fromStatus = $engagement->statut;
+
+            $engagement->update(['statut' => StatutEngagement::Cloture]);
+
+            $engagementId = $engagement->id;
+            $numero = $engagement->numero;
+
+            DB::afterCommit(function () use ($user, $engagementId, $numero, $fromStatus): void {
+                BudgetJournal::record($user, __('Clôture de l’engagement :numero.', ['numero' => $numero]), Engagement::find($engagementId), [
+                    'engagement_id' => $engagementId,
+                ]);
+
+                event(new EngagementStatusChanged(
+                    $engagementId,
+                    $fromStatus->value,
+                    StatutEngagement::Cloture->value,
+                    $user->id
+                ));
+            });
         });
     }
 }

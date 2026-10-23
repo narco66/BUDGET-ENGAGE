@@ -2,8 +2,352 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Base ─────────────────────────────────────────── */
 @layer base {
-    html {
-        scroll-behavior: smooth;
+    :root {
+        /* Design tokens — voir docs/design-system/colors.md */
+        --ceeac-primary: #1E3A8A;
+        --ceeac-primary-rgb: 30, 58, 138;
+        --ceeac-deep: #172554;
+        --ceeac-bright: #2563EB;
+        --ceeac-sky: #60A5FA;
+        --ceeac-light: #DBEAFE;
+        --ceeac-muted: #F1F5F9;
+        --ceeac-ink: #1E293B;
+        --ceeac-slate: #64748B;
+        --ceeac-success: #10B981;
+        --ceeac-warning: #F59E0B;
+        --ceeac-danger: #EF4444;
+        --ceeac-info: #0EA5E9;
+        --ceeac-accent: #7C3AED;
+        --radius-institutional: 10px;
+        --radius-card: 1rem;
+        --space-page: 2rem;
+        --container-max: 88rem;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    [x-cloak] { display: none !important; }
+
+    body {
+        @apply antialiased text-ceeac-ink font-sans;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar       { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { @apply bg-transparent; }
+    ::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
+    ::-webkit-scrollbar-thumb:hover { @apply bg-ceeac-slate; }
+}
+
+/* ─── Components ────────────────────────────────────── */
+@layer components {
+
+    /* ── Landing (référence publique) ── */
+    .hero-float { animation: heroFloat 6s ease-in-out infinite; }
+    @keyframes heroFloat {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        33%       { transform: translateY(-8px) rotate(0.5deg); }
+        66%       { transform: translateY(-4px) rotate(-0.5deg); }
+    }
+    .gradient-border {
+        background: linear-gradient(white, white) padding-box,
+                    linear-gradient(135deg, #2563EB, #60A5FA) border-box;
+        border: 1.5px solid transparent;
+    }
+    .section-fade { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .section-fade.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── Conteneur page interne ── */
+    .page-shell { @apply max-w-8xl mx-auto w-full space-y-6; }
+    .page-shell-narrow { @apply max-w-3xl mx-auto w-full space-y-6; }
+
+    /* ── Sidebar ── */
+    .sidebar-nav-item {
+        @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+               text-blue-200/80 hover:text-white hover:bg-white/10
+               transition-all duration-200 cursor-pointer select-none;
+    }
+    .sidebar-nav-item.active {
+        @apply text-white bg-white/15 shadow-inner;
+    }
+    .sidebar-nav-item .nav-icon {
+        @apply w-5 h-5 shrink-0 opacity-70 transition-opacity duration-200;
+    }
+    .sidebar-nav-item:hover .nav-icon,
+    .sidebar-nav-item.active .nav-icon {
+        @apply opacity-100;
+    }
+    .sidebar-section-label {
+        @apply px-3 pt-5 pb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-blue-300/50;
+    }
+
+    /* ── KPI Cards ── */
+    .kpi-card {
+        @apply relative overflow-hidden rounded-2xl bg-white border border-gray-100
+               p-5 shadow-kpi hover:shadow-hover hover:-translate-y-0.5
+               transition-all duration-200 cursor-default;
+    }
+    .kpi-card::before {
+        content: '';
+        @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+        background: linear-gradient(135deg, rgba(37,99,235,0.03) 0%, transparent 60%);
+    }
+    .kpi-card:hover::before { @apply opacity-100; }
+
+    .kpi-icon {
+        @apply h-11 w-11 rounded-xl flex items-center justify-center shrink-0;
+    }
+    .kpi-value {
+        @apply text-2xl font-bold tabular-nums tracking-tight leading-none;
+    }
+    .kpi-label {
+        @apply text-xs font-semibold uppercase tracking-wide text-ceeac-slate;
+    }
+    .kpi-trend {
+        @apply inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-full;
+    }
+
+    /* ── Stat Badges ── */
+    .badge {
+        @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+    }
+    .badge-success  { @apply bg-ceeac-successBg text-emerald-700; }
+    .badge-warning  { @apply bg-ceeac-warningBg text-amber-700; }
+    .badge-danger   { @apply bg-ceeac-dangerBg  text-red-700; }
+    .badge-info     { @apply bg-ceeac-infoBg    text-sky-700; }
+    .badge-primary  { @apply bg-ceeac-light     text-ceeac-bright; }
+    .badge-neutral  { @apply bg-gray-100        text-gray-600; }
+    .badge-accent   { @apply bg-purple-50       text-purple-700; }
+
+    /* Statut engagements */
+    .badge-brouillon   { @apply badge badge-neutral; }
+    .badge-soumis      { @apply badge badge-info; }
+    .badge-validation  { @apply badge badge-warning; }
+    .badge-approuve    { @apply badge badge-success; }
+    .badge-rejete      { @apply badge badge-danger; }
+    .badge-annule      { @apply bg-gray-100 text-gray-500 badge; }
+    .badge-liquide     { @apply bg-teal-50 text-teal-700 badge; }
+    .badge-ordonnance  { @apply bg-indigo-50 text-indigo-700 badge; }
+    .badge-paye        { @apply badge badge-success; }
+    .badge-retourne    { @apply bg-orange-50 text-orange-700 badge; }
+    .badge-cloture     { @apply bg-slate-100 text-slate-600 badge; }
+
+    /* ── Buttons ── */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+               rounded-xl text-sm font-semibold tracking-wide
+               transition-all duration-200 focus:outline-none focus:ring-2
+               focus:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none;
+    }
+    .btn-primary {
+        @apply btn bg-ceeac-gradient text-white shadow-btn
+               hover:shadow-hover hover:-translate-y-px active:translate-y-0
+               focus:ring-ceeac-bright;
+    }
+    .btn-secondary {
+        @apply btn bg-white text-ceeac-primary border border-gray-200
+               hover:border-ceeac-bright/40 hover:bg-ceeac-light/50
+               focus:ring-ceeac-bright;
+    }
+    .btn-danger {
+        @apply btn bg-danger-gradient text-white shadow-sm
+               hover:shadow-md hover:-translate-y-px
+               focus:ring-ceeac-danger;
+    }
+    .btn-ghost {
+        @apply btn text-ceeac-slate hover:text-ceeac-primary hover:bg-gray-100
+               focus:ring-gray-300;
+    }
+    .btn-success {
+        @apply btn bg-success-gradient text-white shadow-sm
+               hover:shadow-md hover:-translate-y-px
+               focus:ring-ceeac-success;
+    }
+    .btn-sm  { @apply px-3 py-1.5 text-xs; }
+    .btn-lg  { @apply px-6 py-3 text-base; }
+    .btn-xl  { @apply px-8 py-4 text-lg; }
+
+    /* ── Cards ── */
+    .card {
+        @apply bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden;
+    }
+    .card-header {
+        @apply px-6 py-4 border-b border-gray-100 flex items-center justify-between;
+    }
+    .card-body   { @apply px-6 py-5; }
+    .card-footer { @apply px-6 py-4 border-t border-gray-100 bg-gray-50/50; }
+
+    /* ── Data Table ── */
+    .data-table {
+        @apply min-w-full text-sm;
+    }
+    .data-table thead tr {
+        @apply bg-gray-50/80;
+    }
+    .data-table thead th {
+        @apply px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest
+               text-ceeac-slate border-b border-gray-100;
+    }
+    .data-table tbody tr {
+        @apply border-b border-gray-50 hover:bg-blue-50/30 transition-colors duration-150;
+    }
+    .data-table tbody td {
+        @apply px-5 py-3.5 text-ceeac-ink;
+    }
+    .data-table tfoot td {
+        @apply px-5 py-3 text-xs font-semibold text-ceeac-slate border-t border-gray-100;
+    }
+
+    /* ── Form Controls ── */
+    .form-input {
+        @apply block w-full rounded-xl border-gray-200 bg-white px-4 py-2.5 text-sm
+               shadow-sm focus:border-ceeac-bright focus:ring-2 focus:ring-ceeac-bright/20
+               placeholder:text-gray-400 transition-all duration-200;
+    }
+    .form-label {
+        @apply block text-xs font-semibold uppercase tracking-wide text-ceeac-slate mb-1.5;
+    }
+    .form-select {
+        @apply block w-full rounded-xl border-gray-200 bg-white px-4 py-2.5 text-sm
+               shadow-sm focus:border-ceeac-bright focus:ring-2 focus:ring-ceeac-bright/20
+               transition-all duration-200;
+    }
+    .form-group { @apply space-y-1; }
+
+    /* ── Section Title ── */
+    .section-title {
+        @apply text-2xl sm:text-3xl font-bold tracking-tight text-ceeac-primary;
+    }
+    .section-subtitle {
+        @apply mt-3 text-gray-500 leading-relaxed max-w-2xl;
+    }
+
+    /* ── Timeline Workflow ── */
+    .timeline-step {
+        @apply relative flex gap-4 pb-6 last:pb-0;
+    }
+    .timeline-step::before {
+        content: '';
+        @apply absolute left-5 top-10 bottom-0 w-0.5 bg-gray-200;
+    }
+    .timeline-step:last-child::before { @apply hidden; }
+    .timeline-dot {
+        @apply h-10 w-10 rounded-full flex items-center justify-center shrink-0 z-10;
+    }
+
+    /* ── Alert / Notice ── */
+    .alert {
+        @apply flex items-start gap-3 rounded-xl px-4 py-3.5 text-sm;
+    }
+    .alert-info    { @apply alert bg-ceeac-infoBg    text-sky-800    border border-sky-200; }
+    .alert-success { @apply alert bg-ceeac-successBg text-emerald-800 border border-emerald-200; }
+    .alert-warning { @apply alert bg-ceeac-warningBg text-amber-800  border border-amber-200; }
+    .alert-danger  { @apply alert bg-ceeac-dangerBg  text-red-800    border border-red-200; }
+
+    /* ── Page Header ── */
+    .page-header {
+        @apply flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6;
+    }
+    .page-title {
+        @apply text-xl font-bold text-ceeac-primary tracking-tight;
+    }
+    .page-breadcrumb {
+        @apply flex items-center gap-1.5 text-xs text-ceeac-slate;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+        @apply fixed top-0 right-0 left-0 lg:left-sidebar h-16 z-30
+               bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm;
+    }
+
+    /* ── Progress bar ── */
+    .progress-bar {
+        @apply h-2 rounded-full bg-gray-100 overflow-hidden;
+    }
+    .progress-fill {
+        @apply h-full rounded-full transition-all duration-700 ease-out;
+    }
+
+    /* ── Skeleton loader ── */
+    .skeleton {
+        @apply animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200
+               bg-[length:200%_100%] rounded-lg;
+        animation: shimmer 1.5s linear infinite;
+    }
+
+    /* ── Tooltip ── */
+    .tooltip {
+        @apply absolute z-50 px-2 py-1 text-xs font-medium text-white
+               bg-ceeac-ink rounded-lg pointer-events-none whitespace-nowrap
+               shadow-lg opacity-0 transition-opacity duration-200;
+    }
+}
+
+/* ─── Utilities ─────────────────────────────────────── */
+@layer utilities {
+    .text-balance   { text-wrap: balance; }
+    .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+    .glass {
+        background: rgba(255,255,255,0.08);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .gradient-text {
+        @apply bg-clip-text text-transparent;
+        background-image: linear-gradient(135deg, #1E3A8A 0%, #2563EB 60%, #60A5FA 100%);
+    }
+
+    .dot-grid {
+        background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0);
+        background-size: 24px 24px;
+    }
+
+    /* Sidebar transition */
+    .sidebar-collapsed .sidebar-label { @apply opacity-0 w-0 overflow-hidden; }
+    .sidebar-collapsed .sidebar-nav-item { @apply justify-center px-3; }
+    .sidebar-collapsed .sidebar-section-label { @apply hidden; }
+
+    /* ── Chaîne de la dépense ── */
+    .workflow-stepper { @apply w-full overflow-x-auto pb-2; }
+    .workflow-stepper-list { @apply flex min-w-max gap-0; }
+    .workflow-step { @apply flex items-start gap-3 pr-6 relative; }
+    .workflow-step:not(:last-child)::after {
+        content: '';
+        @apply absolute top-4 left-[calc(100%-1.25rem)] w-6 h-0.5 bg-gray-200;
+    }
+    .workflow-step--done:not(:last-child)::after { @apply bg-emerald-400; }
+    .workflow-step-marker {
+        @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold;
+    }
+    .workflow-step--pending .workflow-step-marker { @apply border-gray-200 bg-gray-50 text-gray-400; }
+    .workflow-step--current .workflow-step-marker { @apply border-ceeac-bright bg-ceeac-light text-ceeac-primary; }
+    .workflow-step--done .workflow-step-marker { @apply border-emerald-500 bg-emerald-500 text-white; }
+    .workflow-step--error .workflow-step-marker { @apply border-red-500 bg-red-500 text-white; }
+    .workflow-step-label { @apply text-sm font-semibold text-ceeac-ink; }
+    .workflow-step-ref { @apply text-xs text-ceeac-slate mt-0.5; }
+    .workflow-step-meta { @apply text-xs text-gray-500 mt-1; }
+
+    .financial-summary { @apply card; }
+    .financial-summary-title { @apply card-header text-sm font-semibold text-ceeac-primary; }
+    .financial-summary-grid { @apply card-body grid gap-4; }
+    .financial-metric-label { @apply text-xs uppercase tracking-wide text-gray-500; }
+    .financial-metric-value { @apply text-lg font-bold mt-1; }
+    .financial-metric-hint { @apply text-xs text-gray-400 mt-1; }
+
+    .chaine-tabs-nav { @apply flex flex-wrap gap-1 border-b border-gray-200 mb-5; }
+    .chaine-tab { @apply px-3 py-2 text-sm font-medium border-b-2 border-transparent -mb-px text-gray-500 hover:text-gray-700 transition; }
+    .chaine-tab--active { @apply border-ceeac-primary text-ceeac-primary; }
+    .chaine-tab-panel { @apply animate-fade-in; }
+
+    .chaine-timeline { @apply space-y-4 border-l-2 border-gray-100 ml-3 pl-5; }
+    .chaine-timeline-item { @apply relative; }
+    .chaine-timeline-marker {
+        @apply absolute -left-[1.35rem] top-1 h-2.5 w-2.5 rounded-full bg-ceeac-bright ring-4 ring-white;
     }
 }

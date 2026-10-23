@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'title' => 'Workflow',
+
     'steps' => [
         'validation_service' => 'Validation — niveau service',
         'validation_direction' => 'Validation — niveau direction',

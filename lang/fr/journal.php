@@ -12,6 +12,9 @@ return [
         'liquidation' => 'Liquidation #:id — :montant — engagement :numero.',
         'ordonnancement' => 'Ordonnancement #:id — :montant — engagement :numero.',
         'paiement' => 'Paiement #:id — :montant — engagement :numero.',
+        'cancelled_liquidation' => 'Annulation liquidation #:id — :montant — engagement :numero.',
+        'cancelled_ordonnancement' => 'Annulation ordonnancement #:id — :montant — engagement :numero.',
+        'cancelled_paiement' => 'Annulation paiement #:id — :montant — engagement :numero.',
     ],
     'cancellation' => [
         'approved_engagement' => 'Annulation de l’engagement approuvé :numero — rollback montant engagé sur la ligne.',

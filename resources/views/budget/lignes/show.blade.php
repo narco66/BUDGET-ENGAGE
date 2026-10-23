@@ -11,10 +11,27 @@
             <div class="grid grid-cols-2 gap-2 tabular-nums">
                 <div>{{ __('Voté') }} : {{ number_format((float) $ligne_budgetaire->montant_vote, 2, ',', ' ') }}</div>
                 <div>{{ __('Révisé') }} : {{ number_format((float) $ligne_budgetaire->montant_revise, 2, ',', ' ') }}</div>
+                <div>{{ __('Plafond') }} : {{ number_format((float) $restes['plafond'], 2, ',', ' ') }}</div>
+                <div>{{ __('Crédit disponible') }} : {{ number_format((float) $restes['credit_disponible'], 2, ',', ' ') }}</div>
                 <div>{{ __('Engagé') }} : {{ number_format((float) $ligne_budgetaire->montant_engage, 2, ',', ' ') }}</div>
+                <div>{{ __('Liquidé') }} : {{ number_format((float) $ligne_budgetaire->montant_liquide, 2, ',', ' ') }}</div>
+                <div>{{ __('Ordonnancé') }} : {{ number_format((float) $ligne_budgetaire->montant_ordonnance, 2, ',', ' ') }}</div>
                 <div>{{ __('Payé') }} : {{ number_format((float) $ligne_budgetaire->montant_paye, 2, ',', ' ') }}</div>
             </div>
+            <hr class="my-3">
+            <div class="font-medium text-gray-700 mb-2">{{ __('Restes à exécuter') }}</div>
+            <div class="grid grid-cols-2 gap-2 tabular-nums text-amber-800">
+                <div>{{ __('Reste à engager') }} : {{ number_format((float) $restes['reste_a_engager'], 2, ',', ' ') }}</div>
+                <div>{{ __('Reste à liquider') }} : {{ number_format((float) $restes['reste_a_liquider'], 2, ',', ' ') }}</div>
+                <div>{{ __('Reste à ordonnancer') }} : {{ number_format((float) $restes['reste_a_ordonnancer'], 2, ',', ' ') }}</div>
+                <div>{{ __('Reste à payer') }} : {{ number_format((float) $restes['reste_a_payer'], 2, ',', ' ') }}</div>
+            </div>
         </div>
-        <a href="{{ route('budget.lignes.index') }}" class="text-sm text-indigo-600">{{ __('← Liste') }}</a>
+        <div class="flex gap-4 text-sm">
+            <a href="{{ route('budget.lignes.index') }}" class="text-indigo-600">{{ __('← Liste') }}</a>
+            @can('budget.view')
+                <a href="{{ route('budget.situation.index', ['exercice_budgetaire_id' => $ligne_budgetaire->exercice_budgetaire_id]) }}" class="text-indigo-600">{{ __('Situation budgétaire →') }}</a>
+            @endcan
+        </div>
     </div>
 </x-app-layout>

@@ -7,12 +7,14 @@ use App\Enums\StatutRegularisation;
 use App\Models\Engagement;
 use App\Models\ExerciceBudgetaire;
 use App\Models\LigneBudgetaire;
+use App\Services\Budget\BudgetReportService;
+use App\Services\Rbm\PapBudgetService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request, PapBudgetService $papBudget, BudgetReportService $budgetReport): View
     {
         $exercice = ExerciceBudgetaire::query()
             ->where('est_actif', true)
@@ -72,6 +74,29 @@ class DashboardController extends Controller
 
         $maxChart = max(array_column($chartMonths, 'count')) ?: 1;
 
+        $papSynthese = null;
+        $papParPilier = collect();
+        if ($exercice && $request->user()?->canany(['pap.view', 'pap.import', 'rbm.admin'])) {
+            $papSynthese = $papBudget->synthese($exercice);
+            if ($papSynthese['nb_lignes'] > 0) {
+                $papParPilier = $papBudget->programmationParPilier($exercice);
+            } else {
+                $papSynthese = null;
+            }
+        }
+
+        $budgetSynthese = null;
+        $budgetExecCategories = collect();
+        $budgetAlertes = collect();
+        if ($exercice && $request->user()?->canany(['budget.view', 'budget.import.run', 'budget.replace', 'budget.restore'])) {
+            $synthese = $budgetReport->synthese($exercice);
+            if (($synthese['montant_recettes'] + $synthese['montant_depenses']) > 0) {
+                $budgetSynthese = $synthese;
+                $budgetExecCategories = $budgetReport->executionParCategorie($exercice)->take(6);
+                $budgetAlertes = $budgetReport->alertesActives($exercice);
+            }
+        }
+
         return view('dashboard', compact(
             'exercice',
             'budgetRevise',
@@ -82,7 +107,12 @@ class DashboardController extends Controller
             'alertsEnValidation',
             'urgencesPending',
             'chartMonths',
-            'maxChart'
+            'maxChart',
+            'papSynthese',
+            'papParPilier',
+            'budgetSynthese',
+            'budgetExecCategories',
+            'budgetAlertes'
         ));
     }
 }

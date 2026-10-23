@@ -6,6 +6,12 @@ use App\Enums\StatutImportBudget;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Import budget CSV legacy (table imports_budget).
+ *
+ * @deprecated Utiliser {@see BudgetImport} et le module nomenclature (/budget/nomenclature).
+ *             Les enregistrements sont migrés automatiquement via {@see \App\Services\Budget\BudgetLegacyImportBridge}.
+ */
 class ImportBudget extends Model
 {
     protected $table = 'imports_budget';
@@ -23,6 +29,7 @@ class ImportBudget extends Model
         'validated_by',
         'imported_at',
         'validated_at',
+        'migrated_budget_import_id',
     ];
 
     protected function casts(): array
@@ -48,5 +55,10 @@ class ImportBudget extends Model
     public function validateur(): BelongsTo
     {
         return $this->belongsTo(User::class, 'validated_by');
+    }
+
+    public function budgetImport(): BelongsTo
+    {
+        return $this->belongsTo(BudgetImport::class, 'migrated_budget_import_id');
     }
 }

@@ -1,46 +1,57 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl">{{ __('Lignes budgétaires') }}</h2>
-            <a href="{{ route('budget.lignes.create') }}"><x-secondary-button type="button">{{ __('Ajouter') }}</x-secondary-button></a>
-        </div>
+        <x-ds.page-header :title="__('Lignes budgétaires')" :description="__('Lignes opérationnelles de crédit par exercice.')" :breadcrumb="[
+            ['label' => __('Budget'), 'url' => route('budget.exercices.index')],
+            ['label' => __('Lignes budgétaires')],
+        ]">
+            <x-slot:actions>
+                <a href="{{ route('budget.lignes.create') }}"><x-primary-button type="button">{{ __('Ajouter') }}</x-primary-button></a>
+            </x-slot:actions>
+        </x-ds.page-header>
     </x-slot>
-    <div class="py-8 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
-        <x-auth-session-status :status="session('status')" />
-        <div class="bg-white shadow-sm sm:rounded-lg overflow-x-auto">
-            <table class="min-w-full text-sm divide-y divide-gray-200">
-                <thead class="bg-gray-50"><tr>
-                    <th class="px-4 py-3 text-left">{{ __('Exercice') }}</th>
-                    <th class="px-4 py-3 text-left">{{ __('Code') }}</th>
-                    <th class="px-4 py-3 text-left">{{ __('Libellé') }}</th>
-                    <th class="px-4 py-3 text-left">{{ __('Nature') }}</th>
-                    <th class="px-4 py-3 text-left">{{ __('Département') }}</th>
-                    <th class="px-4 py-3 text-right">{{ __('Voté') }}</th>
-                    <th class="px-4 py-3 text-left">{{ __('Statut') }}</th>
-                    <th class="px-4 py-3"></th>
-                </tr></thead>
-                <tbody class="divide-y divide-gray-100">
-                    @forelse ($lignes as $ligne)
+
+    <x-ds.page-shell>
+        <x-ds.card :padding="false">
+            <div class="overflow-x-auto">
+                <table class="data-table">
+                    <thead>
                         <tr>
-                            <td class="px-4 py-3 whitespace-nowrap">{{ $ligne->exerciceBudgetaire?->annee ?? '—' }}</td>
-                            <td class="px-4 py-3 font-mono">{{ $ligne->code }}</td>
-                            <td class="px-4 py-3 max-w-xs truncate" title="{{ $ligne->libelle }}">{{ $ligne->libelle }}</td>
-                            <td class="px-4 py-3">{{ $ligne->natureDepense?->code ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ $ligne->departement?->libelle ?? '—' }}</td>
-                            <td class="px-4 py-3 text-right tabular-nums">{{ number_format((float) $ligne->montant_vote, 2, ',', ' ') }}</td>
-                            <td class="px-4 py-3">{{ $ligne->statut }}</td>
-                            <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
-                                <a href="{{ route('budget.lignes.edit', $ligne) }}" class="text-indigo-600">{{ __('Modifier') }}</a>
-                                <form class="inline" method="POST" action="{{ route('budget.lignes.destroy', $ligne) }}" onsubmit="return confirm(@json(__('Archiver cette ligne ?')));">@csrf @method('DELETE')
-                                    <button type="submit" class="text-red-600">{{ __('Archiver') }}</button></form>
-                            </td>
+                            <th>{{ __('Exercice') }}</th>
+                            <th>{{ __('Code') }}</th>
+                            <th>{{ __('Libellé') }}</th>
+                            <th>{{ __('Nature') }}</th>
+                            <th>{{ __('Département') }}</th>
+                            <th class="text-right">{{ __('Voté') }}</th>
+                            <th>{{ __('Statut') }}</th>
+                            <th class="text-right">{{ __('Actions') }}</th>
                         </tr>
-                    @empty
-                        <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">{{ __('Aucune ligne.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        {{ $lignes->links() }}
-    </div>
+                    </thead>
+                    <tbody>
+                        @forelse ($lignes as $ligne)
+                            <tr>
+                                <td class="whitespace-nowrap">{{ $ligne->exerciceBudgetaire?->annee ?? '—' }}</td>
+                                <td class="font-mono"><a href="{{ route('budget.lignes.show', $ligne) }}" class="text-ceeac-bright hover:underline">{{ $ligne->code }}</a></td>
+                                <td class="max-w-xs truncate" title="{{ $ligne->libelle }}">{{ $ligne->libelle }}</td>
+                                <td>{{ $ligne->natureDepense?->code ?? '—' }}</td>
+                                <td>{{ $ligne->departement?->libelle ?? '—' }}</td>
+                                <td class="text-right"><x-ds.money :value="$ligne->montant_vote" :decimals="2" :show-currency="false" /></td>
+                                <td><span class="badge badge-neutral">{{ $ligne->statut }}</span></td>
+                                <td class="text-right space-x-2 whitespace-nowrap">
+                                    <a href="{{ route('budget.lignes.edit', $ligne) }}" class="text-ceeac-bright hover:underline">{{ __('Modifier') }}</a>
+                                    <form class="inline" method="POST" action="{{ route('budget.lignes.destroy', $ligne) }}" onsubmit="return confirm(@json(__('Archiver cette ligne ?')));">@csrf @method('DELETE')
+                                        <button type="submit" class="text-ceeac-danger hover:underline">{{ __('Archiver') }}</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="8" class="p-0"><x-ds.empty-state :title="__('Aucune ligne budgétaire')" :description="__('Créez une ligne ou importez le budget nomenclature.')" :action-url="route('budget.lignes.create')" :action-label="__('Ajouter une ligne')" class="border-0 shadow-none" /></td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @if ($lignes->hasPages())
+                <div class="card-footer">{{ $lignes->links() }}</div>
+            @endif
+        </x-ds.card>
+    </x-ds.page-shell>
 </x-app-layout>

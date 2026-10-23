@@ -14,6 +14,7 @@ class ParametresControleSeeder extends Seeder
             ['cle' => 'delai_regularisation_urgence_jours', 'valeur' => '10', 'type_valeur' => 'integer', 'description' => 'Délai maximal de régularisation (jours)'],
             ['cle' => 'marge_proximite_seuil_pourcentage', 'valeur' => '10', 'type_valeur' => 'integer', 'description' => 'Marge de détection des montants proches du seuil (%)'],
             ['cle' => 'seuil_consommation_budget_alerte', 'valeur' => '80', 'type_valeur' => 'integer', 'description' => 'Pourcentage de consommation déclenchant une alerte'],
+            ['cle' => 'seuil_consommation_budget_critique', 'valeur' => '95', 'type_valeur' => 'integer', 'description' => 'Pourcentage de consommation déclenchant une alerte critique'],
             ['cle' => 'nombre_urgences_repetitives_periode', 'valeur' => '3', 'type_valeur' => 'integer', 'description' => 'Nombre d’urgences similaires déclenchant une alerte'],
             ['cle' => 'periode_detection_fractionnement_jours', 'valeur' => '30', 'type_valeur' => 'integer', 'description' => 'Fenêtre d’analyse des fractionnements (jours)'],
         ];

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasGedDocuments;
+use App\Services\Budget\BudgetRestesService;
 use Database\Factories\LigneBudgetaireFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +15,11 @@ class LigneBudgetaire extends Model
 {
     /** @use HasFactory<LigneBudgetaireFactory> */
     use HasFactory;
+
+    use HasGedDocuments;
     use SoftDeletes;
+
+    protected $table = 'lignes_budgetaires';
 
     protected $fillable = [
         'exercice_budgetaire_id',
@@ -22,6 +28,7 @@ class LigneBudgetaire extends Model
         'service_id',
         'nature_depense_id',
         'source_financement_id',
+        'pap_ligne_budgetaire_id',
         'code',
         'libelle',
         'montant_vote',
@@ -75,6 +82,11 @@ class LigneBudgetaire extends Model
         return $this->belongsTo(SourceFinancement::class);
     }
 
+    public function papLigne(): BelongsTo
+    {
+        return $this->belongsTo(PapLigneBudgetaire::class, 'pap_ligne_budgetaire_id');
+    }
+
     public function engagements(): HasMany
     {
         return $this->hasMany(Engagement::class);
@@ -82,10 +94,21 @@ class LigneBudgetaire extends Model
 
     public function creditDisponible(): string
     {
-        $plafond = (string) ($this->montant_revise !== null && (float) $this->montant_revise > 0
-            ? $this->montant_revise
-            : $this->montant_vote);
+        return app(BudgetRestesService::class)->restesPourLigne($this)['credit_disponible'];
+    }
 
-        return bcsub($plafond, (string) $this->montant_engage, 2);
+    /**
+     * Restes à engager / liquider / ordonnancer / payer pour cette ligne.
+     *
+     * @return array<string, float|string>
+     */
+    public function restesExecution(): array
+    {
+        return app(BudgetRestesService::class)->restesPourLigne($this);
+    }
+
+    public function plafondCredits(): string
+    {
+        return app(BudgetRestesService::class)->plafond($this);
     }
 }

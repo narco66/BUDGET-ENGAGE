@@ -6,6 +6,7 @@
     'services' => collect(),
     'natures' => collect(),
     'sources' => collect(),
+    'papLignes' => collect(),
 ])
 @php($ln = $ligne)
 
@@ -55,6 +56,20 @@
         </select>
         <x-input-error class="mt-2" :messages="$errors->get('source_financement_id')" />
     </div>
+    @if ($papLignes->isNotEmpty())
+        <div>
+            <x-input-label for="pap_ligne_budgetaire_id" :value="__('Ligne PAP rattachée')" />
+            <select id="pap_ligne_budgetaire_id" name="pap_ligne_budgetaire_id" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm">
+                <option value="">{{ __('— Aucune —') }}</option>
+                @foreach ($papLignes as $pap)
+                    <option value="{{ $pap->id }}" @selected(old('pap_ligne_budgetaire_id', $ln?->pap_ligne_budgetaire_id) == $pap->id)>
+                        [{{ $pap->exerciceBudgetaire?->annee }}] {{ $pap->code }} — {{ \Illuminate\Support\Str::limit($pap->libelle, 70) }}
+                    </option>
+                @endforeach
+            </select>
+            <x-input-error class="mt-2" :messages="$errors->get('pap_ligne_budgetaire_id')" />
+        </div>
+    @endif
     <div>
         <x-input-label for="departement_id" :value="__('Département')" />
         <select id="departement_id" name="departement_id" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm">

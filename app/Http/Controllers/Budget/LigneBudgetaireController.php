@@ -10,6 +10,7 @@ use App\Models\Direction;
 use App\Models\ExerciceBudgetaire;
 use App\Models\LigneBudgetaire;
 use App\Models\NatureDepense;
+use App\Models\PapLigneBudgetaire;
 use App\Models\Service;
 use App\Models\SourceFinancement;
 use Illuminate\Http\RedirectResponse;
@@ -56,7 +57,9 @@ class LigneBudgetaireController extends Controller
             'sourceFinancement',
         ]);
 
-        return view('budget.lignes.show', compact('ligne_budgetaire'));
+        $restes = $ligne_budgetaire->restesExecution();
+
+        return view('budget.lignes.show', compact('ligne_budgetaire', 'restes'));
     }
 
     public function edit(LigneBudgetaire $ligne_budgetaire): View
@@ -93,6 +96,12 @@ class LigneBudgetaireController extends Controller
             'services' => Service::query()->with('direction.departement')->orderBy('libelle')->get(),
             'natures' => NatureDepense::query()->orderBy('code')->get(),
             'sources' => SourceFinancement::query()->orderBy('code')->get(),
+            'papLignes' => PapLigneBudgetaire::query()
+                ->with('exerciceBudgetaire')
+                ->whereIn('niveau', ['produit', 'sous_produit'])
+                ->orderByDesc('exercice_budgetaire_id')
+                ->orderBy('code')
+                ->get(),
         ];
     }
 

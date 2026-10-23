@@ -3,12 +3,15 @@
 namespace App\Http\Requests\Engagements;
 
 use App\Enums\BeneficiaireType;
+use App\Http\Requests\Engagements\Concerns\WithEngagementTypeRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateEngagementRequest extends FormRequest
 {
+    use WithEngagementTypeRules;
+
     public function authorize(): bool
     {
         return $this->user()?->can('update', $this->route('engagement')) ?? false;
@@ -21,14 +24,6 @@ class UpdateEngagementRequest extends FormRequest
     {
         return [
             'exercice_budgetaire_id' => ['required', 'integer', 'exists:exercices_budgetaires,id'],
-            'ligne_budgetaire_id' => [
-                'required',
-                'integer',
-                'exists:lignes_budgetaires,id',
-                Rule::exists('lignes_budgetaires', 'id')->where(
-                    fn ($query) => $query->where('exercice_budgetaire_id', $this->integer('exercice_budgetaire_id'))
-                ),
-            ],
             'departement_id' => ['nullable', 'integer', 'exists:departements,id'],
             'direction_id' => ['nullable', 'integer', 'exists:directions,id'],
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
@@ -37,11 +32,23 @@ class UpdateEngagementRequest extends FormRequest
             'beneficiaire_id' => ['nullable', 'integer'],
             'beneficiaire_autre' => ['nullable', 'string'],
             'objet' => ['required', 'string'],
-            'montant' => ['required', 'numeric', 'min:0.01'],
             'date_engagement' => ['nullable', 'date'],
             'is_urgence' => ['sometimes', 'boolean'],
             'justification_urgence' => ['nullable', 'string', 'required_if:is_urgence,1,true'],
-        ];
+            'imputations' => ['required', 'array', 'min:1'],
+            'imputations.*.id' => ['nullable', 'integer', 'exists:engagement_imputations,id'],
+            'imputations.*.ligne_budgetaire_id' => [
+                'required',
+                'integer',
+                'distinct',
+                'exists:lignes_budgetaires,id',
+                Rule::exists('lignes_budgetaires', 'id')->where(
+                    fn ($query) => $query->where('exercice_budgetaire_id', $this->integer('exercice_budgetaire_id'))
+                ),
+            ],
+            'imputations.*.montant_impute' => ['required', 'numeric', 'min:0.01'],
+            'imputations.*.observation' => ['nullable', 'string'],
+        ] + $this->typeAndDimensionRules();
     }
 
     public function withValidator(Validator $validator): void
@@ -62,6 +69,28 @@ class UpdateEngagementRequest extends FormRequest
             if ($type === BeneficiaireType::Autre->value && ! $this->filled('beneficiaire_autre')) {
                 $v->errors()->add('beneficiaire_autre', __('Précisez le bénéficiaire.'));
             }
+
+            $engagement = $this->route('engagement');
+            foreach ((array) $this->input('imputations', []) as $index => $row) {
+                if (! isset($row['id']) || $engagement === null) {
+                    continue;
+                }
+
+                $belongs = $engagement->imputations()->whereKey((int) $row['id'])->exists();
+                if (! $belongs) {
+                    $v->errors()->add("imputations.{$index}.id", __('Imputation invalide.'));
+                }
+            }
+
+            $total = '0';
+            foreach ((array) $this->input('imputations', []) as $row) {
+                $total = bcadd($total, (string) ($row['montant_impute'] ?? 0), 2);
+            }
+            if (bccomp($total, '0', 2) <= 0) {
+                $v->errors()->add('imputations', __('Le total des imputations doit être strictement positif.'));
+            }
+
+            $this->validateEngagementTypeFields($v);
         });
     }
 

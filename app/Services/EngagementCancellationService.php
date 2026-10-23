@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\StatutEngagement;
+use App\Events\EngagementStatusChanged;
 use App\Models\Engagement;
 use App\Models\LigneBudgetaire;
 use App\Models\User;
@@ -37,22 +38,34 @@ class EngagementCancellationService
             $numero = $engagement->numero;
             $engagementId = $engagement->id;
 
-            $ligne = LigneBudgetaire::query()
-                ->whereKey($engagement->ligne_budgetaire_id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $nouveauMontantEngage = bcsub((string) $ligne->montant_engage, (string) $engagement->montant, 2);
-
-            if (bccomp($nouveauMontantEngage, '0', 2) < 0) {
-                throw ValidationException::withMessages([
-                    'engagement' => __('Incohérence : le montant engagé sur la ligne est insuffisant pour annuler cet engagement.'),
-                ]);
+            $imputations = $engagement->imputations()->get();
+            if ($imputations->isEmpty()) {
+                $imputations = collect([(object) [
+                    'ligne_budgetaire_id' => $engagement->ligne_budgetaire_id,
+                    'montant_impute' => $engagement->montant,
+                ]]);
             }
 
-            $ligne->update([
-                'montant_engage' => $nouveauMontantEngage,
-            ]);
+            foreach ($imputations as $imputation) {
+                $ligne = LigneBudgetaire::query()
+                    ->whereKey($imputation->ligne_budgetaire_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $nouveauMontantEngage = bcsub((string) $ligne->montant_engage, (string) $imputation->montant_impute, 2);
+
+                if (bccomp($nouveauMontantEngage, '0', 2) < 0) {
+                    throw ValidationException::withMessages([
+                        'engagement' => __('Incohérence : le montant engagé sur la ligne #:ligne est insuffisant.', [
+                            'ligne' => $ligne->id,
+                        ]),
+                    ]);
+                }
+
+                $ligne->update([
+                    'montant_engage' => $nouveauMontantEngage,
+                ]);
+            }
 
             $engagement->update([
                 'statut' => StatutEngagement::Annule,
@@ -65,6 +78,13 @@ class EngagementCancellationService
                     'engagement_id' => $engagementId,
                     'motif_annulation' => $motif,
                 ]);
+
+                event(new EngagementStatusChanged(
+                    $engagementId,
+                    StatutEngagement::Approuve->value,
+                    StatutEngagement::Annule->value,
+                    $user->id
+                ));
             });
         });
     }

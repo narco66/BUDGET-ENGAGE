@@ -2,8 +2,17 @@
 
 namespace App\Providers;
 
+use App\Events\EngagementApproved;
+use App\Events\EngagementStatusChanged;
+use App\Listeners\CreateAuditAlertOnSensitiveTransition;
+use App\Listeners\DispatchRiskScoring;
+use App\Listeners\NotifyEngagementStatusChanged;
+use App\Listeners\RecordEngagementReservation;
+use App\Listeners\ReleaseEngagementReservation;
 use App\Models\ConnexionLog;
+use App\Models\LigneBudgetaire;
 use App\Models\User;
+use App\Observers\LigneBudgetaireObserver;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
@@ -56,5 +65,13 @@ class AppServiceProvider extends ServiceProvider
                 'connecte_le' => now(),
             ]);
         });
+
+        LigneBudgetaire::observe(LigneBudgetaireObserver::class);
+
+        Event::listen(EngagementApproved::class, DispatchRiskScoring::class);
+        Event::listen(EngagementApproved::class, RecordEngagementReservation::class);
+        Event::listen(EngagementStatusChanged::class, CreateAuditAlertOnSensitiveTransition::class);
+        Event::listen(EngagementStatusChanged::class, NotifyEngagementStatusChanged::class);
+        Event::listen(EngagementStatusChanged::class, ReleaseEngagementReservation::class);
     }
 }

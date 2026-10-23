@@ -46,6 +46,51 @@
                         </x-nav-link>
                     @endcan
 
+                    @canany(['execution.liquidation', 'execution.payment'])
+                        <x-nav-link :href="route('execution.dashboard')" :active="request()->routeIs('execution.*')">
+                            {{ __('Exécution') }}
+                        </x-nav-link>
+                    @endcanany
+
+                    @canany(['expression_besoins.view', 'expression_besoins.create', 'expression_besoins.admin'])
+                        <x-nav-link :href="route('expression-besoins.dashboard')" :active="request()->routeIs('expression-besoins.*')">
+                            {{ __('Expression des Besoins') }}
+                        </x-nav-link>
+                    @endcanany
+
+                    @canany(['ged.view', 'ged.admin'])
+                        <x-nav-link :href="route('ged.dashboard')" :active="request()->routeIs('ged.*')">
+                            {{ __('GED') }}
+                        </x-nav-link>
+                    @endcanany
+
+                    @canany(['rbm.view', 'rbm.admin', 'rbm.create', 'rbm.update'])
+                        <x-dropdown align="left" width="72">
+                            <x-slot name="trigger">
+                                <button type="button" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('rbm.*') && ! request()->routeIs('rbm.pap-import.*') ? 'border-ceeac-bright text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                    {{ __('RBM') }}
+                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                                </button>
+                            </x-slot>
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('rbm.piliers.index')">{{ __('Piliers stratégiques') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('rbm.indicateurs.index')">{{ __('Indicateurs') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('rbm.cadres-logiques.index')">{{ __('Cadres logiques') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('rbm.overview.tree')">{{ __('Vue arborescente') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('rbm.overview.synthesis')">{{ __('Synthèse RBM') }}</x-dropdown-link>
+                                @canany(['rbm.import', 'rbm.admin'])
+                                    <x-dropdown-link :href="route('rbm.import.index')">{{ __('Import RBM') }}</x-dropdown-link>
+                                @endcanany
+                                @can('suivi_physique.view')
+                                    <x-dropdown-link :href="route('suivi-physique.index')">{{ __('Suivi physique') }}</x-dropdown-link>
+                                @endcan
+                                @can('suivi_evaluation.view')
+                                    <x-dropdown-link :href="route('suivi-evaluation.index')">{{ __('Suivi & Évaluation') }}</x-dropdown-link>
+                                @endcan
+                            </x-slot>
+                        </x-dropdown>
+                    @endcanany
+
                     @if(auth()->user()->can('reports.view') || auth()->user()->can('reports.view_limited') || auth()->user()->can('exercises.manage') || auth()->user()->can('audit.view'))
                         <x-dropdown align="left" width="56">
                             <x-slot name="trigger">
@@ -82,9 +127,40 @@
                             <x-slot name="content">
                                 <x-dropdown-link :href="route('budget.exercices.index')">{{ __('Exercices budgétaires') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('budget.lignes.index')">{{ __('Lignes budgétaires') }}</x-dropdown-link>
+                                @canany(['budget.view', 'budget.import.run', 'budget.replace', 'budget.restore'])
+                                    <x-dropdown-link :href="route('budget.nomenclature.index')">{{ __('Importation du Budget') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('budget.nomenclature.synthese')">{{ __('Synthèse budgétaire') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('budget.situation.index')">{{ __('Situation budgétaire') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('budget.nomenclature.consolide')">{{ __('État consolidé PAP↔Budget') }}</x-dropdown-link>
+                                @endcanany
+                                @can('recettes.view')
+                                    <x-dropdown-link :href="route('recettes.dashboard')">{{ __('Gestion des recettes') }}</x-dropdown-link>
+                                @endcan
+                                @canany(['budget.virement', 'budget.virement.approve'])
+                                    <x-dropdown-link :href="route('budget.virements.index')">{{ __('Virements de crédits') }}</x-dropdown-link>
+                                @endcanany
+                                @can('budget.alertes')
+                                    <x-dropdown-link :href="route('budget.alertes.historique')">{{ __('Historique des alertes') }}</x-dropdown-link>
+                                @endcan
                             </x-slot>
                         </x-dropdown>
                     @endcan
+
+                    @canany(['pap.view', 'pap.import', 'pap.replace', 'pap.restore', 'rbm.admin'])
+                        <x-dropdown align="left" width="56">
+                            <x-slot name="trigger">
+                                <button type="button" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('rbm.pap-import.*') ? 'border-ceeac-bright text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                    {{ __('Plan de Performance') }}
+                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                                </button>
+                            </x-slot>
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('rbm.pap-import.index')">{{ __('Importation du PAP') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('rbm.pap-import.programmation')">{{ __('État de programmation') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('rbm.pap-import.history')">{{ __('Historique des imports') }}</x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
+                    @endcanany
 
                     @can('parameters.manage')
                         <x-nav-link :href="route('budget.parametres.index')" :active="request()->routeIs('budget.parametres.*')">
@@ -93,8 +169,13 @@
                     @endcan
 
                     @can('users.manage')
-                        <x-nav-link :href="route('admin.users.create')" :active="request()->routeIs('admin.users.create')">
-                            {{ __('Nouvel utilisateur') }}
+                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                            {{ __('Utilisateurs') }}
+                        </x-nav-link>
+                    @endcan
+                    @can('roles.manage')
+                        <x-nav-link :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*')">
+                            {{ __('Rôles') }}
                         </x-nav-link>
                     @endcan
                 </div>
@@ -165,6 +246,21 @@
             @can('viewAny', App\Models\Engagement::class)
                 <x-responsive-nav-link :href="route('engagements.index')" :active="request()->routeIs('engagements.*')">{{ __('Engagements') }}</x-responsive-nav-link>
             @endcan
+            @canany(['execution.liquidation', 'execution.payment'])
+                <x-responsive-nav-link :href="route('execution.dashboard')" :active="request()->routeIs('execution.*')">{{ __('Exécution') }}</x-responsive-nav-link>
+            @endcanany
+            @canany(['expression_besoins.view', 'expression_besoins.create', 'expression_besoins.admin'])
+                <x-responsive-nav-link :href="route('expression-besoins.dashboard')" :active="request()->routeIs('expression-besoins.*')">{{ __('Expression des Besoins') }}</x-responsive-nav-link>
+            @endcanany
+            @canany(['ged.view', 'ged.admin'])
+                <x-responsive-nav-link :href="route('ged.dashboard')" :active="request()->routeIs('ged.*')">{{ __('GED') }}</x-responsive-nav-link>
+            @endcanany
+            @canany(['rbm.view', 'rbm.admin', 'rbm.create', 'rbm.update'])
+                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ __('RBM') }}</div>
+                <x-responsive-nav-link :href="route('rbm.piliers.index')" :active="request()->routeIs('rbm.piliers.*')">{{ __('Piliers stratégiques') }}</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('rbm.indicateurs.index')" :active="request()->routeIs('rbm.indicateurs.*')">{{ __('Indicateurs') }}</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('rbm.overview.tree')" :active="request()->routeIs('rbm.overview.*')">{{ __('Vue arborescente') }}</x-responsive-nav-link>
+            @endcanany
             @if(auth()->user()->can('reports.view') || auth()->user()->can('reports.view_limited') || auth()->user()->can('exercises.manage') || auth()->user()->can('audit.view'))
                 <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ __('Rapports') }}</div>
                 @if(auth()->user()->can('reports.view') || auth()->user()->can('reports.view_limited') || auth()->user()->can('exercises.manage') || auth()->user()->can('audit.view'))
@@ -182,12 +278,29 @@
                 <x-responsive-nav-link :href="route('budget.exercices.index')" :active="request()->routeIs('budget.exercices.*')">{{ __('Exercices budgétaires') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('budget.lignes.index')" :active="request()->routeIs('budget.lignes.*')">{{ __('Lignes budgétaires') }}</x-responsive-nav-link>
             @endcan
+            @canany(['budget.view', 'budget.import.run', 'budget.replace', 'budget.restore'])
+                <x-responsive-nav-link :href="route('budget.nomenclature.index')" :active="request()->routeIs('budget.nomenclature.index')">{{ __('Importation du Budget') }}</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('budget.nomenclature.synthese')" :active="request()->routeIs('budget.nomenclature.synthese')">{{ __('Synthèse budgétaire') }}</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('budget.situation.index')" :active="request()->routeIs('budget.situation.*')">{{ __('Situation budgétaire') }}</x-responsive-nav-link>
+            @endcanany
+            @can('recettes.view')
+                <x-responsive-nav-link :href="route('recettes.dashboard')" :active="request()->routeIs('recettes.*')">{{ __('Gestion des recettes') }}</x-responsive-nav-link>
+            @endcan
+            @canany(['pap.view', 'pap.import', 'pap.replace', 'pap.restore', 'rbm.admin'])
+                <x-responsive-nav-link :href="route('rbm.pap-import.index')" :active="request()->routeIs('rbm.pap-import.index')">{{ __('Importation du PAP') }}</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('rbm.pap-import.history')" :active="request()->routeIs('rbm.pap-import.history')">{{ __('Historique des imports PAP') }}</x-responsive-nav-link>
+            @endcanany
             @can('parameters.manage')
                 <x-responsive-nav-link :href="route('budget.parametres.index')" :active="request()->routeIs('budget.parametres.*')">{{ __('Paramètres de contrôle') }}</x-responsive-nav-link>
             @endcan
             @can('users.manage')
-                <x-responsive-nav-link :href="route('admin.users.create')" :active="request()->routeIs('admin.users.create')">
-                    {{ __('Nouvel utilisateur') }}
+                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                    {{ __('Utilisateurs') }}
+                </x-responsive-nav-link>
+            @endcan
+            @can('roles.manage')
+                <x-responsive-nav-link :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*')">
+                    {{ __('Rôles') }}
                 </x-responsive-nav-link>
             @endcan
         </div>

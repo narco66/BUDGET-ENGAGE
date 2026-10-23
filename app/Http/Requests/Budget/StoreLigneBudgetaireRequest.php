@@ -24,6 +24,7 @@ class StoreLigneBudgetaireRequest extends FormRequest
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
             'nature_depense_id' => ['required', 'integer', 'exists:natures_depenses,id'],
             'source_financement_id' => ['nullable', 'integer', 'exists:sources_financement,id'],
+            'pap_ligne_budgetaire_id' => ['nullable', 'integer', 'exists:pap_lignes_budgetaires,id'],
             'code' => [
                 'required',
                 'string',

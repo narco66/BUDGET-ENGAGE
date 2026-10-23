@@ -10,6 +10,8 @@ class PieceJustificative extends Model
 {
     use SoftDeletes;
 
+    protected $table = 'pieces_justificatives';
+
     protected $fillable = [
         'engagement_id',
         'type_piece',
@@ -20,6 +22,7 @@ class PieceJustificative extends Model
         'mime_type',
         'taille',
         'version',
+        'checksum',
         'uploaded_by',
     ];
 

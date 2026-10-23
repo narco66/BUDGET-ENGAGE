@@ -5,17 +5,20 @@ namespace App\Models;
 use App\Enums\BeneficiaireType;
 use App\Enums\StatutEngagement;
 use App\Enums\StatutRegularisation;
+use App\Models\Concerns\HasGedDocuments;
 use Database\Factories\EngagementFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Engagement extends Model
 {
     /** @use HasFactory<EngagementFactory> */
     use HasFactory;
+    use HasGedDocuments;
     use SoftDeletes;
 
     protected $fillable = [
@@ -26,6 +29,8 @@ class Engagement extends Model
         'direction_id',
         'service_id',
         'type_engagement',
+        'engagement_type_id',
+        'mode_creation',
         'beneficiaire_type',
         'beneficiaire_id',
         'beneficiaire_autre',
@@ -38,6 +43,8 @@ class Engagement extends Model
         'approved_at',
         'rejected_at',
         'cancelled_at',
+        'transmis_liquidation_at',
+        'transmis_par',
         'motif_rejet',
         'motif_annulation',
         'is_urgence',
@@ -62,7 +69,13 @@ class Engagement extends Model
             'approved_at' => 'datetime',
             'rejected_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'transmis_liquidation_at' => 'datetime',
         ];
+    }
+
+    public function transmetteur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'transmis_par');
     }
 
     public function exerciceBudgetaire(): BelongsTo
@@ -73,6 +86,11 @@ class Engagement extends Model
     public function ligneBudgetaire(): BelongsTo
     {
         return $this->belongsTo(LigneBudgetaire::class);
+    }
+
+    public function imputations(): HasMany
+    {
+        return $this->hasMany(EngagementImputation::class);
     }
 
     public function departement(): BelongsTo
@@ -88,6 +106,26 @@ class Engagement extends Model
     public function serviceStructure(): BelongsTo
     {
         return $this->belongsTo(Service::class, 'service_id');
+    }
+
+    public function engagementType(): BelongsTo
+    {
+        return $this->belongsTo(EngagementType::class, 'engagement_type_id');
+    }
+
+    public function typeValeurs(): HasMany
+    {
+        return $this->hasMany(EngagementTypeValeur::class);
+    }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(EngagementVersion::class)->orderByDesc('numero_version');
+    }
+
+    public function reservationsBudgetaires(): HasMany
+    {
+        return $this->hasMany(EngagementReservationBudgetaire::class);
     }
 
     public function createur(): BelongsTo
@@ -118,6 +156,11 @@ class Engagement extends Model
     public function liquidations(): HasMany
     {
         return $this->hasMany(Liquidation::class);
+    }
+
+    public function expressionBesoin(): HasOne
+    {
+        return $this->hasOne(ExpressionBesoin::class);
     }
 
     public function alertesAudit(): HasMany
